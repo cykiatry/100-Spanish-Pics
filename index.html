@@ -390,14 +390,14 @@
     let htmlString = `
         <div class="top-controls">
           <div class="ctrl-row">
-            <button class="ctrl-btn" onclick="playAll(false, 'es')">순차 스페인어 낭독</button>
-            <button class="ctrl-btn" onclick="playAll(true, 'es')">랜덤 스페인어 낭독</button>
+            <button class="ctrl-btn" id="btn-seq-es" onclick="togglePlayAll('btn-seq-es', false, 'es')">순차 스페인어 낭독</button>
+            <button class="ctrl-btn" id="btn-rnd-es" onclick="togglePlayAll('btn-rnd-es', true, 'es')">랜덤 스페인어 낭독</button>
           </div>
           <div class="ctrl-row">
-            <button class="ctrl-btn" onclick="playAll(false, 'en-es')">순차 Eng-Spa 낭독</button>
-            <button class="ctrl-btn" onclick="playAll(true, 'en-es')">랜덤 Eng-Spa 낭독</button>
+            <button class="ctrl-btn" id="btn-seq-enes" onclick="togglePlayAll('btn-seq-enes', false, 'en-es')">순차 Eng-Spa 낭독</button>
+            <button class="ctrl-btn" id="btn-rnd-enes" onclick="togglePlayAll('btn-rnd-enes', true, 'en-es')">랜덤 Eng-Spa 낭독</button>
           </div>
-          <button class="ctrl-btn stop-btn" onclick="stopAll()" style="display:none;" id="stop-btn">🛑 낭독 중지</button>
+          <button class="ctrl-btn stop-btn" onclick="stopAll()" style="display:none;" id="stop-btn">🛑 낭독 완전 중지</button>
         </div>
 `;
 
@@ -441,41 +441,100 @@
   
   let playQueue = [];
   let isPlayingAll = false;
+  let isPaused = false;
   let currentMode = 'es';
+  let currentIndex = -1;
+  let activeBtnId = null;
 
-  function playAll(isRandom, mode) {
-    isPlayingAll = true;
-    currentMode = mode;
-    playQueue = Array.from({length: 100}, (_, i) => i);
-    
-    if (isRandom) {
-      for (let i = playQueue.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [playQueue[i], playQueue[j]] = [playQueue[j], playQueue[i]];
+  const modeLabels = {
+    'btn-seq-es': '순차 스페인어 낭독',
+    'btn-rnd-es': '랜덤 스페인어 낭독',
+    'btn-seq-enes': '순차 Eng-Spa 낭독',
+    'btn-rnd-enes': '랜덤 Eng-Spa 낭독'
+  };
+
+  function resetTopButtons() {
+    for (const id in modeLabels) {
+      const btn = document.getElementById(id);
+      if (btn) {
+        btn.innerHTML = modeLabels[id];
+        btn.style.backgroundColor = '#1e293b'; 
       }
     }
-    
-    document.getElementById('stop-btn').style.display = 'block';
-    window.speechSynthesis.cancel();
-    playNextInQueue();
+  }
+
+  function togglePlayAll(btnId, isRandom, mode) {
+    if (activeBtnId !== btnId) {
+      // 새로운 모드 시작
+      activeBtnId = btnId;
+      currentMode = mode;
+      isPlayingAll = true;
+      isPaused = false;
+      
+      playQueue = Array.from({length: 100}, (_, i) => i);
+      if (isRandom) {
+        for (let i = playQueue.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [playQueue[i], playQueue[j]] = [playQueue[j], playQueue[i]];
+        }
+      }
+      
+      resetTopButtons();
+      const btn = document.getElementById(btnId);
+      btn.innerHTML = '|| 일시정지';
+      btn.style.backgroundColor = '#f59e0b'; // 주황색
+      
+      document.getElementById('stop-btn').style.display = 'block';
+      window.speechSynthesis.cancel();
+      playNextInQueue();
+    } else {
+      // 같은 버튼을 눌렀을 때 (일시정지 <-> 계속재생 토글)
+      const btn = document.getElementById(btnId);
+      if (isPlayingAll) {
+        // 일시정지 실행 (진행중인 음성 취소, 큐는 유지)
+        isPlayingAll = false;
+        isPaused = true;
+        window.speechSynthesis.cancel();
+        btn.innerHTML = '▶ 계속 재생';
+        btn.style.backgroundColor = '#10b981'; // 초록색
+        document.getElementById('spanish-display').innerHTML += '<br><span style="color:#f59e0b; font-size:14px;">(일시정지됨)</span>';
+      } else if (isPaused) {
+        // 계속재생 실행 (마지막 문장부터 다시 시작)
+        isPlayingAll = true;
+        isPaused = false;
+        btn.innerHTML = '|| 일시정지';
+        btn.style.backgroundColor = '#f59e0b';
+        window.speechSynthesis.cancel();
+        if (currentIndex !== -1) {
+          speakSequence(currentIndex, currentMode);
+        } else {
+          playNextInQueue();
+        }
+      }
+    }
   }
 
   function stopAll() {
     isPlayingAll = false;
+    isPaused = false;
     playQueue = [];
+    currentIndex = -1;
+    activeBtnId = null;
     window.speechSynthesis.cancel();
     document.getElementById('stop-btn').style.display = 'none';
     document.querySelectorAll('.play-btn').forEach(btn => btn.style.backgroundColor = '');
-    document.getElementById('spanish-display').textContent = '낭독이 중지되었습니다.';
+    document.getElementById('spanish-display').textContent = '낭독이 완전히 중지되었습니다.';
+    resetTopButtons();
   }
 
   function playNextInQueue() {
-    if (!isPlayingAll || playQueue.length === 0) {
+    if (!isPlayingAll) return;
+    if (playQueue.length === 0) {
       stopAll();
       return;
     }
-    const index = playQueue.shift();
-    speakSequence(index, currentMode);
+    currentIndex = playQueue.shift();
+    speakSequence(currentIndex, currentMode);
   }
 
   function speakSequence(index, mode) {
@@ -518,7 +577,7 @@
 
     esUtterance.onend = () => {
       setTimeout(() => {
-        if (isPlayingAll) playNextInQueue();
+        if (isPlayingAll && !isPaused) playNextInQueue();
       }, 1000); 
     };
 
@@ -535,7 +594,10 @@
   }
 
   function speak(index) {
-    isPlayingAll = false;
+    if (isPlayingAll || isPaused) {
+      stopAll(); // 개별 재생 시 기존 전체 재생/일시정지 완전 초기화
+    }
+    
     document.getElementById('stop-btn').style.display = 'none';
     const text = sentences[index];
     document.getElementById('spanish-display').textContent = `${index}. ${text}`;
