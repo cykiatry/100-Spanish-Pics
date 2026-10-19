@@ -99,19 +99,20 @@
       max-width: 500px;
       background-color: #1e293b;
       color: #f8fafc;
-      padding: 15px 20px;
+      padding: 15px 25px;
       box-sizing: border-box;
       font-size: 17px;
       font-weight: 500;
-      text-align: center;
+      text-align: left;
       min-height: 80px;
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       border-top-left-radius: 16px;
       border-top-right-radius: 16px;
       box-shadow: 0 -4px 10px rgba(0,0,0,0.3);
       z-index: 1000;
+      line-height: 1.4;
     }
   
     .top-controls {
@@ -152,6 +153,33 @@
     }
     .stop-btn:active {
       background-color: #b91c1c;
+    }
+    #progress-container {
+      width: 100%;
+      max-width: 380px;
+      height: 24px;
+      background-color: #e2e8f0;
+      border-radius: 12px;
+      margin-top: 10px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+    }
+    #progress-fill {
+      height: 100%;
+      background-color: #3b82f6;
+      width: 0%;
+      transition: width 0.3s ease;
+      pointer-events: none;
+    }
+    .progress-marker {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background-color: rgba(255,255,255,0.5);
+      pointer-events: none;
     }
   </style>
 </head>
@@ -397,6 +425,12 @@
             <button class="ctrl-btn" id="btn-seq-enes" onclick="togglePlayAll('btn-seq-enes', false, 'en-es')">순차 Eng-Spa 낭독</button>
             <button class="ctrl-btn" id="btn-rnd-enes" onclick="togglePlayAll('btn-rnd-enes', true, 'en-es')">랜덤 Eng-Spa 낭독</button>
           </div>
+          <div id="progress-container" onclick="seekProgress(event)">
+            <div id="progress-fill"></div>
+            <div class="progress-marker" style="left: 25%;"></div>
+            <div class="progress-marker" style="left: 50%;"></div>
+            <div class="progress-marker" style="left: 75%;"></div>
+          </div>
           <button class="ctrl-btn stop-btn" onclick="stopAll()" style="display:none;" id="stop-btn">🛑 낭독 완전 중지</button>
         </div>
 `;
@@ -442,6 +476,7 @@
   let playQueue = [];
   let isPlayingAll = false;
   let isPaused = false;
+  let isSeeking = false;
   let currentMode = 'es';
   let currentIndex = -1;
   let activeBtnId = null;
@@ -524,6 +559,7 @@
     document.getElementById('stop-btn').style.display = 'none';
     document.querySelectorAll('.play-btn').forEach(btn => btn.style.backgroundColor = '');
     document.getElementById('spanish-display').textContent = '낭독이 완전히 중지되었습니다.';
+    updateProgressBar(-1);
     resetTopButtons();
   }
 
@@ -537,7 +573,49 @@
     speakSequence(currentIndex, currentMode);
   }
 
+  function updateProgressBar(index) {
+    const fill = document.getElementById('progress-fill');
+    if (fill) {
+      fill.style.width = ((index + 1) / 100) * 100 + '%';
+    }
+  }
+
+  function seekProgress(event) {
+    const barContainer = document.getElementById('progress-container');
+    const rect = barContainer.getBoundingClientRect();
+    let clickX = event.clientX - rect.left;
+    if (clickX < 0) clickX = 0;
+    
+    let percentage = clickX / rect.width;
+    let targetIndex = Math.floor(percentage * 100);
+
+    if (targetIndex < 0) targetIndex = 0;
+    if (targetIndex > 99) targetIndex = 99;
+
+    isSeeking = true;
+    window.speechSynthesis.cancel();
+    updateProgressBar(targetIndex);
+
+    setTimeout(() => {
+      isSeeking = false;
+      if (isPlayingAll) {
+        isPaused = false;
+        if (activeBtnId) {
+          const btn = document.getElementById(activeBtnId);
+          btn.innerHTML = '|| 일시정지';
+          btn.style.backgroundColor = '#f59e0b';
+        }
+        document.getElementById('stop-btn').style.display = 'block';
+        playQueue = Array.from({length: 100 - targetIndex}, (_, i) => targetIndex + i);
+        playNextInQueue();
+      } else {
+        speak(targetIndex);
+      }
+    }, 50);
+  }
+
   function speakSequence(index, mode) {
+    updateProgressBar(index);
     document.querySelectorAll('.play-btn').forEach(btn => btn.style.backgroundColor = '');
     const btn = document.getElementById(`btn-${index}`);
     if (btn) {
@@ -552,9 +630,9 @@
     const englishText = englishSentences[index];
     
     if (mode === 'en-es') {
-      document.getElementById('spanish-display').innerHTML = `<b>${index}.</b> ${englishText}<br><span style="color:#94a3b8; font-size:14px;">${spanishText}</span>`;
+      document.getElementById('spanish-display').innerHTML = `<div style="width: 100%;"><b>${index}.</b> ${spanishText}<div style="margin-top: 6px; color: #94a3b8; font-size: 14.5px;">${englishText}</div></div>`;
     } else {
-      document.getElementById('spanish-display').textContent = `${index}. ${spanishText}`;
+      document.getElementById('spanish-display').innerHTML = `<div style="width: 100%;"><b>${index}.</b> ${spanishText}</div>`;
     }
 
     const numUtterance = new SpeechSynthesisUtterance(index.toString());
@@ -576,8 +654,9 @@
     esUtterance.rate = 0.9;
 
     esUtterance.onend = () => {
+      if (isSeeking) return;
       setTimeout(() => {
-        if (isPlayingAll && !isPaused) playNextInQueue();
+        if (isPlayingAll && !isPaused && !isSeeking) playNextInQueue();
       }, 1000); 
     };
 
@@ -594,13 +673,14 @@
   }
 
   function speak(index) {
+    updateProgressBar(index);
     if (isPlayingAll || isPaused) {
-      stopAll(); // 개별 재생 시 기존 전체 재생/일시정지 완전 초기화
+      stopAll(); 
     }
     
     document.getElementById('stop-btn').style.display = 'none';
     const text = sentences[index];
-    document.getElementById('spanish-display').textContent = `${index}. ${text}`;
+    document.getElementById('spanish-display').innerHTML = `<div style="width: 100%;"><b>${index}.</b> ${text}</div>`;
 
     document.querySelectorAll('.play-btn').forEach(btn => btn.style.backgroundColor = '');
     document.getElementById(`btn-${index}`).style.backgroundColor = '#ef4444';
