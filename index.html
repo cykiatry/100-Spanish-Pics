@@ -48,32 +48,34 @@
     }
     .btn-box {
       flex: 1;
-      border: 2px solid #3b82f6;
+      border: 2px solid #7dd3fc;
       border-radius: 12px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      background-color: transparent;
+      background: linear-gradient(145deg, #f0f9ff, #e0f2fe);
+      box-shadow: 0 4px 0 #0284c7, 0 6px 10px rgba(0,0,0,0.15);
+      margin-bottom: 4px;
     }
     .btn-box-row {
       display: flex;
       flex: 1;
     }
     .btn-box-row:first-child {
-      border-bottom: 2px solid #3b82f6;
+      border-bottom: 2px solid #bae6fd;
     }
     .num-btn {
       flex: 1;
       height: 46px;
       background-color: transparent;
       border: none;
-      border-right: 2px solid #3b82f6;
-      color: #3b82f6;
+      border-right: 2px solid #bae6fd;
+      color: #0284c7;
       font-size: 18px;
       font-weight: bold;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
-      transition: background-color 0.1s, color 0.1s;
+      transition: background-color 0.1s, color 0.1s, box-shadow 0.1s;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -83,8 +85,9 @@
       border-right: none;
     }
     .num-btn:active, .num-btn.active {
-      background-color: #3b82f6;
+      background-color: #38bdf8;
       color: #ffffff !important;
+      box-shadow: inset 0 3px 6px rgba(0,0,0,0.2);
     }
 
     .bottom-bar {
@@ -165,10 +168,11 @@
     }
     #progress-fill {
       height: 100%;
-      background-color: #3b82f6;
+      background-color: #4ade80;
       width: 0%;
       transition: width 0.3s ease;
       pointer-events: none;
+      box-shadow: 0 0 10px #4ade80, 0 0 20px #4ade80, 0 0 30px #22c55e;
     }
     .progress-marker {
       position: absolute;
@@ -441,7 +445,7 @@
           <img src="${imgSrc}" alt="그림 ${b}">
           <div class="btn-panel">
             <div class="btn-box">
-              <div class="btn-box-row" style="border-bottom: 2px solid #3b82f6;">
+              <div class="btn-box-row" style="border-bottom: 2px solid #bae6fd;">
                 <button class="num-btn" id="btn-${b}" onclick="speak(${b})">${b}</button>
               </div>
               <div class="btn-box-row">
@@ -451,7 +455,7 @@
               </div>
             </div>
             <div class="btn-box">
-              <div class="btn-box-row" style="border-bottom: 2px solid #3b82f6;">
+              <div class="btn-box-row" style="border-bottom: 2px solid #bae6fd;">
                 <button class="num-btn" id="btn-${b+4}" onclick="speak(${b+4})">${b+4}</button>
                 <button class="num-btn" id="btn-${b+5}" onclick="speak(${b+5})">${b+5}</button>
                 <button class="num-btn" id="btn-${b+6}" onclick="speak(${b+6})" style="border-right: none;">${b+6}</button>
