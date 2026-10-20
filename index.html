@@ -42,52 +42,49 @@
       width: 100%;
       max-width: 380px; 
       display: flex;
-      flex-direction: column;
-      gap: 12px; 
-    }
-
-    .row1, .row2 {
-      display: flex;
+      flex-direction: row;
       justify-content: space-between;
-      width: 100%;
+      gap: 15px; 
     }
-
-    .row2 {
-      padding-left: 0px; 
-      box-sizing: border-box;
-    }
-
-    .group {
+    .btn-box {
+      flex: 1;
+      border: 2px solid #3b82f6;
+      border-radius: 12px;
       display: flex;
-      gap: 8px; 
+      flex-direction: column;
+      overflow: hidden;
+      background-color: transparent;
     }
-
-    .play-btn {
-      width: 46px;
+    .btn-box-row {
+      display: flex;
+      flex: 1;
+    }
+    .btn-box-row:first-child {
+      border-bottom: 2px solid #3b82f6;
+    }
+    .num-btn {
+      flex: 1;
       height: 46px;
-      border-radius: 50%;
-      background-color: #3b82f6; 
+      background-color: transparent;
       border: none;
-      color: #ffffff;
-      font-size: 16px;
+      border-right: 2px solid #3b82f6;
+      color: #3b82f6;
+      font-size: 18px;
       font-weight: bold;
       cursor: pointer;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
       -webkit-tap-highlight-color: transparent;
-      transition: transform 0.1s, background-color 0.1s;
+      transition: background-color 0.1s, color 0.1s;
       display: flex;
       justify-content: center;
       align-items: center;
+      padding: 0;
     }
-
-    .wide-btn {
-      width: 154px;
-      border-radius: 23px; 
+    .num-btn:last-child {
+      border-right: none;
     }
-
-    .play-btn:active {
-      background-color: #1d4ed8; 
-      transform: scale(0.95);
+    .num-btn:active, .num-btn.active {
+      background-color: #3b82f6;
+      color: #ffffff !important;
     }
 
     .bottom-bar {
@@ -443,24 +440,26 @@
         <div class="section">
           <img src="${imgSrc}" alt="그림 ${b}">
           <div class="btn-panel">
-            <div class="row1">
-              <div class="group"><button class="play-btn wide-btn" id="btn-${b}" onclick="speak(${b})">${b}</button></div>
-              <div class="group">
-                <button class="play-btn" id="btn-${b+1}" onclick="speak(${b+1})">${b+1}</button>
-                <button class="play-btn" id="btn-${b+2}" onclick="speak(${b+2})">${b+2}</button>
-                <button class="play-btn" id="btn-${b+3}" onclick="speak(${b+3})">${b+3}</button>
+            <div class="btn-box">
+              <div class="btn-box-row" style="border-bottom: 2px solid #3b82f6;">
+                <button class="num-btn" id="btn-${b}" onclick="speak(${b})">${b}</button>
+              </div>
+              <div class="btn-box-row">
+                <button class="num-btn" id="btn-${b+1}" onclick="speak(${b+1})">${b+1}</button>
+                <button class="num-btn" id="btn-${b+2}" onclick="speak(${b+2})">${b+2}</button>
+                <button class="num-btn" id="btn-${b+3}" onclick="speak(${b+3})" style="border-right: none;">${b+3}</button>
               </div>
             </div>
-            <div class="row2">
-              <div class="group">
-                <button class="play-btn" id="btn-${b+4}" onclick="speak(${b+4})">${b+4}</button>
-                <button class="play-btn" id="btn-${b+5}" onclick="speak(${b+5})">${b+5}</button>
-                <button class="play-btn" id="btn-${b+6}" onclick="speak(${b+6})">${b+6}</button>
+            <div class="btn-box">
+              <div class="btn-box-row" style="border-bottom: 2px solid #3b82f6;">
+                <button class="num-btn" id="btn-${b+4}" onclick="speak(${b+4})">${b+4}</button>
+                <button class="num-btn" id="btn-${b+5}" onclick="speak(${b+5})">${b+5}</button>
+                <button class="num-btn" id="btn-${b+6}" onclick="speak(${b+6})" style="border-right: none;">${b+6}</button>
               </div>
-              <div class="group">
-                <button class="play-btn" id="btn-${b+7}" onclick="speak(${b+7})">${b+7}</button>
-                <button class="play-btn" id="btn-${b+8}" onclick="speak(${b+8})">${b+8}</button>
-                <button class="play-btn" id="btn-${b+9}" onclick="speak(${b+9})">${b+9}</button>
+              <div class="btn-box-row">
+                <button class="num-btn" id="btn-${b+7}" onclick="speak(${b+7})">${b+7}</button>
+                <button class="num-btn" id="btn-${b+8}" onclick="speak(${b+8})">${b+8}</button>
+                <button class="num-btn" id="btn-${b+9}" onclick="speak(${b+9})" style="border-right: none;">${b+9}</button>
               </div>
             </div>
           </div>
@@ -557,7 +556,7 @@
     activeBtnId = null;
     window.speechSynthesis.cancel();
     document.getElementById('stop-btn').style.display = 'none';
-    document.querySelectorAll('.play-btn').forEach(btn => btn.style.backgroundColor = '');
+    document.querySelectorAll('.num-btn').forEach(btn => { btn.style.backgroundColor = ''; btn.style.color = ''; });
     document.getElementById('spanish-display').textContent = '낭독이 완전히 중지되었습니다.';
     updateProgressBar(-1);
     resetTopButtons();
@@ -616,10 +615,10 @@
 
   function speakSequence(index, mode) {
     updateProgressBar(index);
-    document.querySelectorAll('.play-btn').forEach(btn => btn.style.backgroundColor = '');
+    document.querySelectorAll('.num-btn').forEach(btn => { btn.style.backgroundColor = ''; btn.style.color = ''; });
     const btn = document.getElementById(`btn-${index}`);
     if (btn) {
-      btn.style.backgroundColor = '#ef4444';
+      btn.style.backgroundColor = '#ef4444'; btn.style.color = '#ffffff';
       const section = btn.closest('.section');
       if (section) {
         section.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -674,6 +673,12 @@
     window.speechSynthesis.speak(numUtterance);
   }
 
+  
+  // HTML/CSS를 이용해 1~100까지 항상 둥근 원문자 형태를 만들어주는 함수
+  function getCircledNumber(num) {
+    return `<span style="display:inline-block; width: 24px; height: 24px; background-color:#f59e0b; color:white; border-radius:50%; text-align:center; line-height:24px; font-size:14px; font-weight:bold; margin-top: 8px;">${num}</span>`;
+  }
+
   function speak(index) {
     const spanishText = sentences[index];
     const englishText = englishSentences[index];
@@ -684,7 +689,10 @@
         // 재생 중 -> 누르면 일시 정지
         isPaused = true;
         window.speechSynthesis.cancel();
-        document.getElementById('spanish-display').innerHTML += '<div style="margin-top: 8px; color:#f59e0b; font-size:14px; font-weight:normal;">(숫자 버튼으로 일시정지됨)</div>';
+        
+        // 주황색 둥근 아이콘으로 번호 표시
+        document.getElementById('spanish-display').innerHTML += getCircledNumber(index);
+        
         if (activeBtnId) {
           const btn = document.getElementById(activeBtnId);
           btn.innerHTML = '▶ 계속 재생';
@@ -729,8 +737,8 @@
       </div>
     `;
 
-    document.querySelectorAll('.play-btn').forEach(btn => btn.style.backgroundColor = '');
-    document.getElementById(`btn-${index}`).style.backgroundColor = '#ef4444';
+    document.querySelectorAll('.num-btn').forEach(btn => { btn.style.backgroundColor = ''; btn.style.color = ''; });
+    const actBtn = document.getElementById(`btn-${index}`); if(actBtn) { actBtn.style.backgroundColor = '#ef4444'; actBtn.style.color = '#ffffff'; }
 
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
