@@ -629,11 +629,13 @@
     const spanishText = sentences[index];
     const englishText = englishSentences[index];
     
-    if (mode === 'en-es') {
-      document.getElementById('spanish-display').innerHTML = `<div style="width: 100%;"><b>${index}.</b> ${spanishText}<div style="margin-top: 6px; color: #94a3b8; font-size: 14.5px;">${englishText}</div></div>`;
-    } else {
-      document.getElementById('spanish-display').innerHTML = `<div style="width: 100%;"><b>${index}.</b> ${spanishText}</div>`;
-    }
+    // 항상 영어(상단/작고 흐리게) - 스페인어(하단/크고 진하게) 표시
+    document.getElementById('spanish-display').innerHTML = `
+      <div style="width: 100%; text-align: left;">
+        <div style="color: #94a3b8; font-size: 14px; margin-bottom: 6px;"><b>${index}.</b> ${englishText}</div>
+        <div style="color: #ffffff; font-size: 19.5px; font-weight: bold; line-height: 1.3;">${spanishText}</div>
+      </div>
+    `;
 
     const numUtterance = new SpeechSynthesisUtterance(index.toString());
     numUtterance.lang = 'en-US';
@@ -673,21 +675,66 @@
   }
 
   function speak(index) {
-    updateProgressBar(index);
-    if (isPlayingAll || isPaused) {
-      stopAll(); 
+    const spanishText = sentences[index];
+    const englishText = englishSentences[index];
+
+    // 전체 재생 모드 작동 중일 때 숫자 버튼을 누른 경우 (일시정지/재생 토글)
+    if (isPlayingAll) {
+      if (!isPaused) {
+        // 재생 중 -> 누르면 일시 정지
+        isPaused = true;
+        window.speechSynthesis.cancel();
+        document.getElementById('spanish-display').innerHTML += '<div style="margin-top: 8px; color:#f59e0b; font-size:14px; font-weight:normal;">(숫자 버튼으로 일시정지됨)</div>';
+        if (activeBtnId) {
+          const btn = document.getElementById(activeBtnId);
+          btn.innerHTML = '▶ 계속 재생';
+          btn.style.backgroundColor = '#10b981';
+        }
+      } else {
+        // 일시 정지 중 -> 누른 번호부터 현재 모드로 이어서 재생
+        isPaused = false;
+        if (activeBtnId) {
+          const btn = document.getElementById(activeBtnId);
+          btn.innerHTML = '|| 일시정지';
+          btn.style.backgroundColor = '#f59e0b';
+        }
+        
+        // 큐 재구성
+        if (activeBtnId.includes('rnd')) {
+          // 랜덤 모드: 누른 번호를 첫 번째로 하고 나머지 섞기
+          playQueue = Array.from({length: 100}, (_, i) => i);
+          playQueue = playQueue.filter(i => i !== index);
+          for (let i = playQueue.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [playQueue[i], playQueue[j]] = [playQueue[j], playQueue[i]];
+          }
+          playQueue.unshift(index);
+        } else {
+          // 순차 모드: 누른 번호부터 끝까지
+          playQueue = Array.from({length: 100 - index}, (_, i) => index + i);
+        }
+        playNextInQueue();
+      }
+      return;
     }
-    
+
+    // 전체 재생 모드가 아닐 때 (단독 문장 재생)
+    updateProgressBar(index);
     document.getElementById('stop-btn').style.display = 'none';
-    const text = sentences[index];
-    document.getElementById('spanish-display').innerHTML = `<div style="width: 100%;"><b>${index}.</b> ${text}</div>`;
+    
+    document.getElementById('spanish-display').innerHTML = `
+      <div style="width: 100%; text-align: left;">
+        <div style="color: #94a3b8; font-size: 14px; margin-bottom: 6px;"><b>${index}.</b> ${englishText}</div>
+        <div style="color: #ffffff; font-size: 19.5px; font-weight: bold; line-height: 1.3;">${spanishText}</div>
+      </div>
+    `;
 
     document.querySelectorAll('.play-btn').forEach(btn => btn.style.backgroundColor = '');
     document.getElementById(`btn-${index}`).style.backgroundColor = '#ef4444';
 
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
+      const utterance = new SpeechSynthesisUtterance(spanishText);
       utterance.lang = 'es-ES'; 
       utterance.rate = 0.9;
       let voices = window.speechSynthesis.getVoices();
